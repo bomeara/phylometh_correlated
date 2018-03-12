@@ -6,13 +6,15 @@ You can do this on your own data, or on included data here.
 
 ```{r, eval=FALSE}
 library(geiger)
-library(pic)
-tree.primates <- read.tree(text="((((Homo:0.21,Pongo:0.21):0.28,Macaca:0.49):0.13,Ateles:0.62):0.38,Galago:1.00);") #using examples from ape ?pic
+library(ape)
+#library(pic) #?????????????? 
+tree.primates <- read.tree(text="((((Homo:0.21,Pongo:0.21):0.28,Macaca:0.49):0.13,Ateles:0.62):0.38,Galago:1.00);") #using examples from ape 
 X <- c(4.09434, 3.61092, 2.37024, 2.02815, -1.46968)
 Y <- c(4.74493, 3.33220, 3.36730, 2.89037, 2.30259)
 names(X) <- names(Y) <- c("Homo", "Pongo", "Macaca", "Ateles", "Galago")
 pic.X <- pic(X, tree.primates)
 pic.Y <- pic(Y, tree.primates)
+?pic
 ```
 
 Now, positivitize the contrasts and do a regression through the origin.
@@ -21,10 +23,11 @@ Now, positivitize the contrasts and do a regression through the origin.
 
 ```{r, eval=FALSE}
 require("corHMM")
-?corHMM
+##?corHMM
 data(primates)
 ls()
 print(primates)
+plot(primates$tree)
 require(phytools)
 ```
 
@@ -36,7 +39,6 @@ First, a review of discrete state models:
 
 ```{r, eval=FALSE}
 primates$trait[which(grepl("Hylobates",primates$trait[,1])),2]<-1
-
 trait1<-primates$trait[,2]
 names(trait1)<-primates$trait[,1]
 plotSimmap(make.simmap(primates$tree, trait1), pts=FALSE, fsize=0.8)
@@ -48,7 +50,7 @@ What does this matrix mean?
 
 ```{r, eval=FALSE}
 pp.er<-corHMM(primates$tree,primates$trait[,c(1,2)],rate.cat=1,rate.mat=rate.mat.er,node.states="marginal")
-print(pp.er)
+print(pp.er) #lowerAIC
 ```
 
 What do these results mean?
@@ -65,7 +67,7 @@ pp.ard<-corHMM(primates$tree,primates$trait[,c(1,2)],rate.cat=1,rate.mat=rate.ma
 print(pp.ard)
 ```
 
-which model is better?
+which model is better? 
 
 Now let's look at multiple traits.
 
@@ -73,7 +75,7 @@ This is a matrix with four states
 
 ```{r, eval=FALSE}
 rate.mat.er.4state<-rate.mat.maker(rate.cat=1, hrm=FALSE, ntraits=1, nstates=4, model="ER")
-print(rate.mat.er.4state)
+print(rate.mat.er.4state) #confused on what this is .. fake data? 
 ```
 
 Convert the two binary traits into a single four character state
@@ -114,7 +116,7 @@ rate.mat.gtr.4state<-rate.par.eq(rate.mat.gtr.4state, c(5,7))
 rate.mat.gtr.4state<-rate.par.eq(rate.mat.gtr.4state, c(6,7))
 print(rate.mat.gtr.4state)
 
-print(rayDISC(primates$tree, fourstate.data, ntraits=1, rate.mat= rate.mat.gtr.4state, node.states="marginal", model="ARD"))
+print(rayDISC(primates$tree, fourstate.data, ntraits=1, rate.mat= rate.mat.gtr.4state, node.states="marginal", model="ARD")) #even lower AIC #rate matrix! 
 ```
 
 
@@ -123,19 +125,64 @@ Now make a model like Pagel 1994
 ```{r, eval=FALSE}
 print(rate.mat.maker(rate.cat=1, hrm=FALSE, ntraits=2, nstates=2, model="ARD"))
 rate.mat.pag94<-rate.par.drop(rate.mat.ard.4state, drop.par=c(3,5,8,10))
-print
+print(rate.mat.pag94)
+mod1<-corDISC(primates$tree,primates$trait,ntraits=2,model="ARD",node.states="marginal",diagn=FALSE)
+print(mod1)
 ```
 
 Now that you have some introduction, there are two routes:
 
 ##Route 1
 
-**Construct a model to test if state 1 can never be lost**
+**1). Construct a model to test if state 1 can never be lost**
+```{r, eval=FALSE}
+?corDISC #exploring this model and its limitations/flexibility
+mod1a<-corDISC(primates$tree,primates$trait,ntraits=2,rate.mat=rate.mat.pag94,model="ARD",node.states="marginal",diagn=FALSE)
+print(mod1) #aic 102.34
+mod1b<-corDISC(primates$tree,primates$trait,ntraits=2,rate.mat=rate.mat.pag94,model="ER",node.states="marginal",diagn=FALSE)
+print(mod2) 
+mod1c<-corDISC(primates$tree,primates$trait,ntraits=2,rate.mat=rate.mat.pag94,model="SYM",node.states="marginal",diagn=FALSE) 
 
-**Experiment with the effects of frequencies at the root.**
+#no real substantial difference when I change the models above. I think I'll stick with ARD model
 
-**Create and use a model to see if transitions from 00 go to 11 only via 01.**
+#Brian, what would be the potential limitation of trying to use fitPagel for modeling binary correlated traits? I've attempted to set some models up and just explore myself.. As if I were to complete the assignment using this function... 
+#fitPagel #test model fit, AIC, indep/depend, biological conclusions. Can 1 be lost?  
+#fit.t1t2<-fitPagel(primates$tree,primates$trait$T1,primates$trait$T2,dep.var="xy") #correlated #ARD
+#fit.t1<-fitPagel(primates$tree,primates$trait$T1,primates$trait$T2,dep.var="x") #independent #ARD
+#fit.t2<-fitPagel(primates$tree,primates$trait$T1,primates$trait$T2,dep.var="y") #independent #ARD
+#fit.er<-fitPagel(primates$tree,primates$trait$T1,primates$trait$T2,model="ER") #equal rates, x has two rates depending on the state of y (but equal in forward and backwards rate)
+#not sure what I'm up to but still messing around with fitPagel here.
+#fit.g<-fitPagel(primates$tree,primates$trait$T1,primates$trait$T2,method="fitDiscrete") #geiger
+#fit.er<-fitPagel(primates$tree,primates$trait$T1,primates$trait$T2,model="ER") #equal rates, x has two rates depending on the state of y (but equal in forward and backwards rate)
+```
+**2). Experiment with the effects of frequencies at the root.**
+```{r, eval=FALSE} 
+#messing around with root node prob. 
+root.p2a<-c(1,0,0,0) #00,01,10,11
+root.p2b<-c(0,1,0,0) #00,01,10,11
+root.p2c<-c(0,0,1,0) #00,01,10,11
+root.p2d<-c(0,0,0,1) #00,01,10,11
+mod2a<-corDISC(primates$tree,primates$trait,ntraits=2,rate.mat=rate.mat.pag94,node.states="marginal",root.p=root.p2a,model="ARD",diagn=FALSE) #lowest AIC with fixed prob of state 00 at ancestral root
+mod2b<-corDISC(primates$tree,primates$trait,ntraits=2,rate.mat=rate.mat.pag94,node.states="marginal",root.p=root.p2b,model="ARD",diagn=FALSE)
+mod2c<-corDISC(primates$tree,primates$trait,ntraits=2,rate.mat=rate.mat.pag94,node.states="marginal",root.p=root.p2c,model="ARD",diagn=FALSE)
+mod2d<-corDISC(primates$tree,primates$trait,ntraits=2,rate.mat=rate.mat.pag94,node.states="marginal",root.p=root.p2d,model="ARD",diagn=FALSE)
+```
+**3). Create and use a model to see if transitions from 00 go to 11 only via 01.**
+```{r, eval=FALSE} 
+#i think here I want to create an independent model with asymetrical transition rates, marginal node states to infer ancestral states at internal nodes, now how do I make one model independent and the other not with corDISC? Use rayDISC (Independence) and corDISC (dependence)
+mod3a<-corDISC(primates$tree,primates$trait,ntraits=2,rate.mat=rate.mat.pag94,model="ARD",node.states="marginal",diagn=FALSE) #same as mod1a
+#primT1<-c(primates$trait$Genus_sp,primates$trait$T1) attempting to isolate T1 and T2
+#primT2<-c(primates$trait$Genus_sp,primates$trait$T2) to put in mod 3b and 3b1 to then sum the log lik of the independent models. 
+mod3b<-rayDISC(primates$tree,primates$trait,model="ARD",node.states="marginal") #still running into errors when using primt1 or primt2. rayDISC only working with primates$trait
+#attempting to then test model fit to see if a dependent model vs an independent model would be best. #loglikelihood test between summed independent log lik and the dependent log lik 
+loglik3a<-mod3a$loglik #null
+loglik3b<-mod3b$loglik #alt
+ratio<-(loglik3a/loglik3b)
+testa<-0.5*ratio
+#testb<-2[(loglik3b)-(loglik3a)]
+#reject null: but really close to 1... traits are equally as likely to be indep as correlated.
 
+```
 ##Route 2
 
 Maddison and FitzJohn (2015) pretty convincingly show (to me) that Pagel (1994) is just not a good method. Ok. So work on a fix. They point to [Read and Nee (1995)](http://dx.doi.org/10.1006/jtbi.1995.0047) as a low power but possible solution. Look at their appendix, especially, and write an implementation.
