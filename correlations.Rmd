@@ -81,7 +81,6 @@ Now let's look at multiple traits.
 This is a matrix with four states
 
 ```{r, eval=TRUE}
-rate.mat.er.4state<-rate.mat.maker(rate.cat=1, hrm=FALSE, ntraits=1, nstates=4, model="ER")
 print(rate.mat.er.4state)
 ```
 
@@ -154,8 +153,6 @@ Now that you have some introduction, there are two routes:
 mod<-corDISC(primates$tree,primates$trait,ntraits=2,rate.mat.pag94,model="ARD",node.state="marginal",diagn=FALSE)
 print(mod)
 
-#I dont know if this is right...please advise
-
 #2
 
 rate.drop<-rate.par.drop(rate.mat.ard.4state,drop.par=c(1,2,3,5,6,8,9))
@@ -166,7 +163,7 @@ mod.ex.2<-rayDISC(primates$tree, fourstate.data,ntraits=2,rate.mat=rate.drop,nod
 
 #3
 
-rate.drop<-rate.par.drop(rate.mat.ard.4state,drop.par=NULL)
+rate.drop<-rate.par.drop(rate.mat.ard.4state,drop.par=c(1,2,3,5,6,8,9))
 mod2<-rayDISC(primates$tree, fourstate.data,ntraits=2,rate.mat=rate.drop,node.states="marginal",model="ARD",root.p= c(0.95,0.02,0.02,0.01))
 print(mod2)
 
