@@ -4,9 +4,11 @@ You can do this on your own data, or on included data here.
 
 ##Continuous data
 
-```{r, eval=FALSE}
+```{r, eval=TRUE}
+install.packages("ape")
 library(geiger)
-library(pic)
+library(pic) #Does not exist?
+library(ape)
 tree.primates <- read.tree(text="((((Homo:0.21,Pongo:0.21):0.28,Macaca:0.49):0.13,Ateles:0.62):0.38,Galago:1.00);") #using examples from ape ?pic
 X <- c(4.09434, 3.61092, 2.37024, 2.02815, -1.46968)
 Y <- c(4.74493, 3.33220, 3.36730, 2.89037, 2.30259)
@@ -19,9 +21,8 @@ Now, positivitize the contrasts and do a regression through the origin.
 
 ##Discrete data
 
-```{r, eval=FALSE}
+```{r, eval=TRUE}
 require("corHMM")
-?corHMM
 data(primates)
 ls()
 print(primates)
@@ -34,7 +35,7 @@ For actual analyses, of course, DO NOT INVENT YOUR DATA.
 
 First, a review of discrete state models:
 
-```{r, eval=FALSE}
+```{r, eval=TRUE}
 primates$trait[which(grepl("Hylobates",primates$trait[,1])),2]<-1
 
 trait1<-primates$trait[,2]
@@ -46,39 +47,46 @@ print(rate.mat.er)
 
 What does this matrix mean?
 
-```{r, eval=FALSE}
+
+
+```{r, eval=TRUE}
 pp.er<-corHMM(primates$tree,primates$trait[,c(1,2)],rate.cat=1,rate.mat=rate.mat.er,node.states="marginal")
 print(pp.er)
 ```
 
 What do these results mean?
 
-```{r, eval=FALSE}
+#rate of 1 to 0 = rate of 0 = 1
+
+```{r, eval=TRUE}
 rate.mat.ard<-rate.mat.maker(rate.cat=1, hrm=FALSE, ntraits=1, nstates=2, model="ARD")
 print(rate.mat.ard)
 ```
 
 And these?
 
-```{r, eval=FALSE}
+#Different rates (ARD model)
+
+```{r, eval=TRUE}
 pp.ard<-corHMM(primates$tree,primates$trait[,c(1,2)],rate.cat=1,rate.mat=rate.mat.ard,node.states="marginal")
 print(pp.ard)
 ```
 
 which model is better?
 
+#Seems like the model with equal rates (ER) will be better given the AIC
+
 Now let's look at multiple traits.
 
 This is a matrix with four states
 
-```{r, eval=FALSE}
-rate.mat.er.4state<-rate.mat.maker(rate.cat=1, hrm=FALSE, ntraits=1, nstates=4, model="ER")
+```{r, eval=TRUE}
 print(rate.mat.er.4state)
 ```
 
 Convert the two binary traits into a single four character state
 
-```{r, eval=FALSE}
+```{r, eval=TRUE}
 fourstate.trait<-rep(NA,Ntip(primates$tree))
 for(i in sequence(Ntip(primates$tree))) {
 	if(primates$trait[i,2]==0 && primates$trait[i,3]==0) {
@@ -104,7 +112,7 @@ print(rate.mat.ard.4state)
 
 Now let's make the equivalent of a GTR matrix:
 
-```{r, eval=FALSE}
+```{r, eval=TRUE}
 rate.mat.gtr.4state<-rate.mat.ard.4state
 rate.mat.gtr.4state<-rate.par.eq(rate.mat.gtr.4state, c(1,4))
 rate.mat.gtr.4state<-rate.par.eq(rate.mat.gtr.4state, c(2,6))
@@ -120,7 +128,7 @@ print(rayDISC(primates$tree, fourstate.data, ntraits=1, rate.mat= rate.mat.gtr.4
 
 Now make a model like Pagel 1994
 
-```{r, eval=FALSE}
+```{r, eval=TRUE}
 print(rate.mat.maker(rate.cat=1, hrm=FALSE, ntraits=2, nstates=2, model="ARD"))
 rate.mat.pag94<-rate.par.drop(rate.mat.ard.4state, drop.par=c(3,5,8,10))
 print
@@ -135,6 +143,34 @@ Now that you have some introduction, there are two routes:
 **Experiment with the effects of frequencies at the root.**
 
 **Create and use a model to see if transitions from 00 go to 11 only via 01.**
+
+```{r, eval=TRUE}
+
+#1
+
+#Using corDISC or rayDISC? Going with corDISC and using rate.mat.pag94.
+
+mod<-corDISC(primates$tree,primates$trait,ntraits=2,rate.mat.pag94,model="ARD",node.state="marginal",diagn=FALSE)
+print(mod)
+
+#2
+
+rate.drop<-rate.par.drop(rate.mat.ard.4state,drop.par=c(1,2,3,5,6,8,9))
+
+mod.ex<-rayDISC(primates$tree, fourstate.data,ntraits=2,rate.mat=rate.drop,node.states="marginal",model="ARD",root.p= c(1,1,1,1))
+mod.ex.1<-rayDISC(primates$tree, fourstate.data,ntraits=2,rate.mat=rate.drop,node.states="marginal",model="ARD",root.p= c(0,1,0,1))
+mod.ex.2<-rayDISC(primates$tree, fourstate.data,ntraits=2,rate.mat=rate.drop,node.states="marginal",model="ARD",root.p= c(1,0,1,0))
+
+#3
+
+rate.drop<-rate.par.drop(rate.mat.ard.4state,drop.par=c(1,2,3,5,6,8,9))
+mod2<-rayDISC(primates$tree, fourstate.data,ntraits=2,rate.mat=rate.drop,node.states="marginal",model="ARD",root.p= c(0.95,0.02,0.02,0.01))
+print(mod2)
+
+#Error: simultaneous estimation of rates and states using either marginal or scaled probabilities not yet implemented.
+#Halp
+
+```
 
 ##Route 2
 
